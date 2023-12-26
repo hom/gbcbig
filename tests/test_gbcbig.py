@@ -3,7 +3,7 @@ import math
 from pathlib import Path
 from ezdxf.document import Drawing
 from ezdxf.layouts.layout import Modelspace
-from drawer.main import draw
+from gbcbig.drawer import draw
 
 dirname = Path.joinpath(Path(__file__).parent, "gbcbig")
 print(dirname)
