@@ -12,13 +12,13 @@ if error_path.exists():
 
 
 def write_error(line, shape):
-    with open(error_path, "a+") as f:
+    with open(error_path, "a+", encoding="utf8") as f:
         f.write(line + shape + "\n\n")
 
 
 characters = []
-with open(dirname / "gbcbig.shp", "r") as f:
-    lines = f.readlines()[7:]
+with open(dirname / "gbcbig.shp", "r", encoding="utf8") as f:
+    lines = f.readlines()[4:]
     shape = ""
     gb2312 = ""
     unicode = ""
@@ -41,6 +41,15 @@ with open(dirname / "gbcbig.shp", "r") as f:
             chars = line[1:].replace(" ", "").replace("\n", "").split(",")
             gb2312 = chars[0]
             if gb2312 == "142" or gb2312 == "143":
+                characters.append(
+                    {
+                        "shape": shape,
+                        "gb2312": gb2312,
+                        "unicode": "",
+                        "length": chars[1],
+                        "character": chars[2],
+                    }
+                )
                 write_error(line, shape)
                 i += j
                 continue
@@ -65,5 +74,5 @@ with open(dirname / "gbcbig.shp", "r") as f:
             )
             i += j
 
-with open(dist / "gbcbig.json", "w") as f:
+with open(dist / "gbcbig.json", "w", encoding="utf8") as f:
     json.dump(characters, f, ensure_ascii=False, indent=2)
