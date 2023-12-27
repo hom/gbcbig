@@ -64,8 +64,6 @@ def pen_down(msp: Modelspace, paths, i, x, y):
     if code == "8":
         dx = int(paths[i + 1][1:]) if paths[i + 1][0] == "(" else int(paths[i + 1])
         dy = int(paths[i + 2][:-1]) if paths[i + 2][-1] == ")" else int(paths[i + 2])
-        print(f"dx={dx},dy={dy}")
-        msp.add_circle(center=(x, y), radius=1)
         msp.add_text(text=str(circle_i), dxfattribs={"height": 1}).set_placement((x, y))
         circle_i += 1
         msp.add_line(start=(x, y), end=(x + dx, y + dy))
@@ -77,7 +75,6 @@ def pen_down(msp: Modelspace, paths, i, x, y):
     direction = int(code[2], 16)
     # 计算 dx 的值
     dx, dy = delta_x_y(length, direction)
-    msp.add_circle(center=(x, y), radius=1)
     msp.add_text(text=str(circle_i), dxfattribs={"height": 1}).set_placement((x, y))
     circle_i += 1
     msp.add_line(
@@ -98,9 +95,6 @@ def pen_up(msp, paths, i, x, y):
     if code == "8":
         dx = int(paths[i + 1][1:]) if paths[i + 1][0] == "(" else int(paths[i + 1])
         dy = int(paths[i + 2][:-1]) if paths[i + 2][-1] == ")" else int(paths[i + 2])
-        print(f"dx={dx},dy={dy}")
-        msp.add_circle(center=(x, y), radius=1, dxfattribs={"color": 2})
-        msp.add_circle(center=(x + dx, y + dy), radius=1, dxfattribs={"color": 2})
         x += dx
         y += dy
         return pen_up(msp, paths=paths, i=i + 3, x=x, y=y)
@@ -109,8 +103,6 @@ def pen_up(msp, paths, i, x, y):
     direction = int(code[2], 16)
     # 计算 dx 的值
     dx, dy = delta_x_y(length, direction)
-    msp.add_circle(center=(x, y), radius=1, dxfattribs={"color": 2})
-    msp.add_circle(center=(x + dx, y + dy), radius=1, dxfattribs={"color": 2})
     x += dx
     y += dy
     return pen_up(msp, paths=paths, i=i + 1, x=x, y=y)
@@ -125,6 +117,8 @@ def only_verticle_line(msp, paths, i, x, y):
 
 def draw(doc: Drawing, msp: Modelspace, shp_paths):
     x, y = 0, 0
+    scale = 1
+    stack = []
     paths = shp_paths.split(",")
     print(paths)
     path_length = len(paths)
@@ -149,19 +143,23 @@ def draw(doc: Drawing, msp: Modelspace, shp_paths):
             print("PEN_UP")
             i, x, y = pen_up(msp, paths, i + 1, x, y)
         elif code == "3":
-            print("PEN_TOGGLE")
-            i += 1
+            print("矢量除以比例因子")
+            scale = scale / int(paths[i + 1], 16)
+            i += 3
             continue
         elif code == "4":
-            print("MOVE_ABS")
+            print("矢量乘以比例因子")
+            scale = scale * int(paths[i + 1], 16)
             i += 1
             continue
         elif code == "5":
             print("MOVE_REL")
-            i += 1
+            stack.append((x, y))
+            i += 2
             continue
         elif code == "6":
             print("LINE_ABS")
+            x, y = stack.pop()
             i += 1
             continue
         elif code == "7":
