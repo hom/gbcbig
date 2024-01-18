@@ -55,8 +55,8 @@ def delta_x_y(length, direction):
 
 class Drawer:
     def __init__(self, paths):
-        self.doc = Drawing()
-        self.msp = self.doc.modelspace()
+        self.drawing = Drawing()
+        self.modelspace = self.drawing.modelspace()
         self.paths = paths.split(",")
 
     def only_verticle_line(self, i, x, y):
@@ -196,4 +196,4 @@ class Drawer:
 
     def save(self):
         """保存绘图"""
-        self.doc.saveas("test.dxf")
+        self.drawing.saveas("test.dxf")
