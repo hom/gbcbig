@@ -1,6 +1,7 @@
 import math
 from ezdxf.document import Drawing
 from ezdxf.layouts.layout import Modelspace
+from .document import Document
 
 special_codes = [
     "0",
@@ -54,10 +55,9 @@ def delta_x_y(length, direction):
 
 
 class Drawer:
-    def __init__(self, paths):
-        self.drawing = Drawing()
+    def __init__(self):
+        self.drawing = Document.initialize()
         self.modelspace = self.drawing.modelspace()
-        self.paths = paths.split(",")
 
     def only_verticle_line(self, i, x, y):
         code = self.paths[i]
@@ -65,132 +65,120 @@ class Drawer:
             return i, x, y
         return i + 3, x, y
 
-    def draw(self):
-        """绘制图形"""
-        self.i = 0
-        self.x = 0
-        self.y = 0
-        self.scale = 1
-        self.stack = []
-        # 通过 i 来控制 paths 的遍历
-        while i < len(self.paths):
-            print(self.paths[i])
-            # 读取 code，根据 code 的值来判断下一步的操作
-            # https://help.autodesk.com/view/ACD/2022/CHS/?guid=GUID-06832147-16BE-4A66-A6D0-3ADF98DC8228
+    def handler(self, code, paths: list):
+        """处理代码"""
+        # 读取 code，根据 code 的值来判断下一步的操作
+        # https://help.autodesk.com/view/ACD/2022/CHS/?guid=GUID-06832147-16BE-4A66-A6D0-3ADF98DC8228
+        if code == "0":
+            return
+        if code == "1":
+            print("PEN_DOWN")
+            self.mode = True
+            return self.handler(paths.pop(0), paths)
+        if code == "2":
+            print("PEN_UP")
+            self.mode = False
+            dx, dy = 0, 0
             code = self.paths[i]
-            if code == "0":
-                i += 1
-                continue
-            elif code == "1":
-                print("PEN_DOWN")
-                dx, dy = 0, 0
-                if code in special_codes and code != "8":
-                    return i, x, y
-                if code == "8":
-                    dx = (
-                        int(self.paths[i + 1][1:])
-                        if self.paths[i + 1][0] == "("
-                        else int(self.paths[i + 1])
-                    )
-                    dy = (
-                        int(self.paths[i + 2][:-1])
-                        if self.paths[i + 2][-1] == ")"
-                        else int(self.paths[i + 2])
-                    )
-                    self.modelspace.add_line(start=(x, y), end=(x + dx, y + dy))
-                    x += dx
-                    y += dy
-                    return self.pen_down(i=i + 3, x=x, y=y)
-                print(f"code: {code}")
-                length = int(code[1], 16)
-                direction = int(code[2], 16)
-                # 计算 dx 的值
-                dx, dy = delta_x_y(length, direction)
-                self.modelspace.add_line(
-                    start=(x, y),
-                    end=(x + dx, y + dy),
+            if code in special_codes and code != "8":
+                return i, x, y
+            if code == "8":
+                dx = (
+                    int(self.paths[i + 1][1:])
+                    if self.paths[i + 1][0] == "("
+                    else int(self.paths[i + 1])
+                )
+                dy = (
+                    int(self.paths[i + 2][:-1])
+                    if self.paths[i + 2][-1] == ")"
+                    else int(self.paths[i + 2])
                 )
                 x += dx
                 y += dy
-                continue
-            elif code == "2":
-                print("PEN_UP")
-                dx, dy = 0, 0
-                code = self.paths[i]
-                if code in special_codes and code != "8":
-                    return i, x, y
-                if code == "8":
-                    dx = (
-                        int(self.paths[i + 1][1:])
-                        if self.paths[i + 1][0] == "("
-                        else int(self.paths[i + 1])
-                    )
-                    dy = (
-                        int(self.paths[i + 2][:-1])
-                        if self.paths[i + 2][-1] == ")"
-                        else int(self.paths[i + 2])
-                    )
-                    x += dx
-                    y += dy
-                    return self.pen_up(i=i + 3, x=x, y=y)
-                print(f"code: {code}")
-                length = int(code[1], 16)
-                direction = int(code[2], 16)
-                # 计算 dx 的值
-                dx, dy = delta_x_y(length, direction)
-                x += dx
-                y += dy
-            elif code == "3":
-                print("矢量除以比例因子")
-                scale = scale / int(self.paths[i + 1], 16)
-                i += 3
-                continue
-            elif code == "4":
-                print("矢量乘以比例因子")
-                scale = scale * int(self.paths[i + 1], 16)
-                i += 1
-                continue
-            elif code == "5":
-                print("MOVE_REL")
-                self.stack.append((x, y))
-                i += 2
-                continue
-            elif code == "6":
-                print("LINE_ABS")
-                x, y = self.stack.pop()
-                i += 1
-                continue
-            elif code == "7":
-                print("LINE_REL")
-                i += 3
-                continue
-            elif code == "8":
-                print("XY_DISPLACEMENT")
-                i += 3
-                continue
-            elif code == "10" or code == "0a":
-                print("OCTANT_ARC")
-                i += 4
-                continue
-            elif code == "11" or code == "0b":
-                print("FRACTIONAL_ARC")
-                i += 6
-                continue
-            elif code == "12" or code == "0c":
-                print("BULGE_ARC")
-                i += 4
-                continue
-            elif code == "13" or code == "0d":
-                print("POLY_BULGE_ARC")
-                i += 9
-                continue
-            elif code == "14" or code == "0e":
-                print("COND_MODE_2")
-                i, x, y = self.only_verticle_line(i + 1, x, y)
-                continue
-            else:
-                print("END_OF_SHAPE")
-                return
+                return self.pen_up(i=i + 3, x=x, y=y)
+            print(f"code: {code}")
+            length = int(code[1], 16)
+            direction = int(code[2], 16)
+            # 计算 dx 的值
+            dx, dy = delta_x_y(length, direction)
+            x += dx
+            y += dy
+            return
+        if code == "3":
+            print("矢量除以比例因子")
+            scale = scale / int(self.paths[i + 1], 16)
+            i += 3
+            return
+        if code == "4":
+            print("矢量乘以比例因子")
+            scale = scale * int(self.paths[i + 1], 16)
+            i += 1
+            return
+        if code == "5":
+            print("MOVE_REL")
+            self.stack.append((x, y))
+            i += 2
+            return
+        if code == "6":
+            print("LINE_ABS")
+            x, y = self.stack.pop()
+            i += 1
+            return
+        if code == "7":
+            print("LINE_REL")
+            i += 3
+            return
+        if code == "8":
+            dx, dy = paths.pop(0), paths.pop(0)
+            dx = int(dx[1:]) if "(" in dx else int(dx)
+            dx = int(dy[:-1]) if ")" in dy else int(dy)
+            dy = (
+                int(self.paths[i + 2][:-1])
+                if self.paths[i + 2][-1] == ")"
+                else int(self.paths[i + 2])
+            )
+            length = int(code[1], 16)
+            direction = int(code[2], 16)
+            # 计算 dx 的值
+            dx, dy = delta_x_y(length, direction)
+            self.modelspace.add_line(
+                start=(x, y),
+                end=(x + dx, y + dy),
+            )
+            x += dx
+            y += dy
+            self.modelspace.add_line(start=(x, y), end=(x + dx, y + dy))
+            print("XY_DISPLACEMENT")
+            i += 3
+            return
+        if code == "10" or code == "0a":
+            print("OCTANT_ARC")
+            i += 4
+            return
+        if code == "11" or code == "0b":
+            print("FRACTIONAL_ARC")
+            i += 6
+            return
+        if code == "12" or code == "0c":
+            print("BULGE_ARC")
+            i += 4
+            return
+        if code == "13" or code == "0d":
+            print("POLY_BULGE_ARC")
+            i += 9
+            return
+        if code == "14" or code == "0e":
+            print("COND_MODE_2")
+            i, x, y = self.only_verticle_line(i + 1, x, y)
+        else:
+            print("END_OF_SHAPE")
+            return
+
+    def draw(self, path: str):
+        """绘制图形"""
+        paths = path.split(",")
+        while len(paths) > 0:
+            self.handler(paths.pop(0), paths)
         print("绘制完成")
 
     def saveas(self):
