@@ -84,7 +84,6 @@ class Drawer:
             elif code == "1":
                 print("PEN_DOWN")
                 dx, dy = 0, 0
-                code = self.paths[i]
                 if code in special_codes and code != "8":
                     return i, x, y
                 if code == "8":
@@ -98,7 +97,7 @@ class Drawer:
                         if self.paths[i + 2][-1] == ")"
                         else int(self.paths[i + 2])
                     )
-                    self.msp.add_line(start=(x, y), end=(x + dx, y + dy))
+                    self.modelspace.add_line(start=(x, y), end=(x + dx, y + dy))
                     x += dx
                     y += dy
                     return self.pen_down(i=i + 3, x=x, y=y)
@@ -107,7 +106,7 @@ class Drawer:
                 direction = int(code[2], 16)
                 # 计算 dx 的值
                 dx, dy = delta_x_y(length, direction)
-                self.msp.add_line(
+                self.modelspace.add_line(
                     start=(x, y),
                     end=(x + dx, y + dy),
                 )
@@ -194,6 +193,6 @@ class Drawer:
                 return
         print("绘制完成")
 
-    def save(self):
+    def saveas(self):
         """保存绘图"""
         self.drawing.saveas("test.dxf")
