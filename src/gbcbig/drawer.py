@@ -56,14 +56,8 @@ def delta_x_y(length, direction):
 
 class Drawer:
     def __init__(self):
-        self.drawing = Document.initialize()
-        self.modelspace = self.drawing.modelspace()
-
-    def only_verticle_line(self, i, x, y):
-        code = self.paths[i]
-        if code in special_codes and code != "8":
-            return i, x, y
-        return i + 3, x, y
+        self.drawing: Drawing = Document.initialize()
+        self.modelspace: Modelspace = self.drawing.modelspace()
 
     def handler(self, code, paths: list):
         """处理代码"""
