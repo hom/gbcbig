@@ -58,6 +58,10 @@ class Drawer:
     def __init__(self):
         self.drawing: Drawing = Document.initialize()
         self.modelspace: Modelspace = self.drawing.modelspace()
+        self.scale = 1
+        self.mode = False
+        self.stack = []
+        self.pen = (0, 0)
 
     def handler(self, code, paths: list):
         """处理代码"""
@@ -67,114 +71,123 @@ class Drawer:
             return
         if code == "1":
             print("PEN_DOWN")
+            if self.direction:
+                return
             self.mode = True
-            return self.handler(paths.pop(0), paths)
+            return
         if code == "2":
+            if self.direction:
+                return
             print("PEN_UP")
             self.mode = False
-            dx, dy = 0, 0
-            code = self.paths[i]
-            if code in special_codes and code != "8":
-                return i, x, y
-            if code == "8":
-                dx = (
-                    int(self.paths[i + 1][1:])
-                    if self.paths[i + 1][0] == "("
-                    else int(self.paths[i + 1])
-                )
-                dy = (
-                    int(self.paths[i + 2][:-1])
-                    if self.paths[i + 2][-1] == ")"
-                    else int(self.paths[i + 2])
-                )
-                x += dx
-                y += dy
-                return self.pen_up(i=i + 3, x=x, y=y)
-            print(f"code: {code}")
-            length = int(code[1], 16)
-            direction = int(code[2], 16)
-            # 计算 dx 的值
-            dx, dy = delta_x_y(length, direction)
-            x += dx
-            y += dy
             return
         if code == "3":
+            if self.direction:
+                paths.pop(0)
+                return
             print("矢量除以比例因子")
-            scale = scale / int(self.paths[i + 1], 16)
-            i += 3
+            self.scale /= int(paths.pop(0), 16)
             return
         if code == "4":
+            if self.direction:
+                paths.pop(0)
+                return
             print("矢量乘以比例因子")
-            scale = scale * int(self.paths[i + 1], 16)
-            i += 1
+            self.scale *= int(paths.pop(0), 16)
             return
         if code == "5":
-            print("MOVE_REL")
-            self.stack.append((x, y))
-            i += 2
+            if self.direction:
+                return
+            print("将当前位置压入堆栈")
+            self.stack.append(self.pen)
             return
         if code == "6":
-            print("LINE_ABS")
-            x, y = self.stack.pop()
-            i += 1
+            if self.direction:
+                return
+            print("将当前位置从堆栈弹出")
+            self.pen = self.stack.pop()
             return
         if code == "7":
-            print("LINE_REL")
-            i += 3
+            print("绘制子形")
             return
         if code == "8":
+            print("绘制位移")
+            if self.direction:
+                paths.pop(0)
+                paths.pop(0)
+                return
             dx, dy = paths.pop(0), paths.pop(0)
             dx = int(dx[1:]) if "(" in dx else int(dx)
-            dx = int(dy[:-1]) if ")" in dy else int(dy)
-            dy = (
-                int(self.paths[i + 2][:-1])
-                if self.paths[i + 2][-1] == ")"
-                else int(self.paths[i + 2])
-            )
-            length = int(code[1], 16)
-            direction = int(code[2], 16)
-            # 计算 dx 的值
-            dx, dy = delta_x_y(length, direction)
-            self.modelspace.add_line(
-                start=(x, y),
-                end=(x + dx, y + dy),
-            )
-            x += dx
-            y += dy
-            self.modelspace.add_line(start=(x, y), end=(x + dx, y + dy))
-            print("XY_DISPLACEMENT")
-            i += 3
+            dy = int(dy[:-1]) if ")" in dy else int(dy)
+
+            # length = int(code[1], 16)
+            # direction = int(code[2], 16)
+            # # 计算 dx 的值
+            # dx, dy = delta_x_y(length, direction)
+            # self.modelspace.add_line(
+            #     start=(x, y),
+            #     end=(x + dx, y + dy),
+            # )
+            if self.mode:
+                self.modelspace.add_line(
+                    start=self.pen,
+                    end=(self.pen[0] + dx, self.pen[1] + dy),
+                )
+            self.pen = (self.pen[0] + dx, self.pen[1] + dy)
             return
         if code == "10" or code == "0a":
-            print("OCTANT_ARC")
-            i += 4
+            if self.direction:
+                for _ in range(2):
+                    paths.pop(0)
+                return
+            print("绘制圆弧")
+            radius = int(paths.pop(0), 16)
+            print(radius)
+            start_and_end = paths.pop(0)
+            print(start_and_end)
             return
         if code == "11" or code == "0b":
-            print("FRACTIONAL_ARC")
-            i += 6
+            if self.direction:
+                for _ in range(5):
+                    paths.pop(0)
+                return
+            print("由下两个字节指定的圆弧")
+            start_offset = int(paths.pop(0), 16)
+            end_offset = int(paths.pop(0), 16)
+            print(start_offset, end_offset)
+            high_radius = int(paths.pop(0), 16)
+            low_radius = int(paths.pop(0), 16)
+            print(high_radius, low_radius)
+            start_and_end = paths.pop(0)
+            print(start_and_end)
             return
         if code == "12" or code == "0c":
-            print("BULGE_ARC")
-            i += 4
+            if self.direction:
+                for _ in range(3):
+                    paths.pop(0)
+                return
+            print("由x,y位移和凸度指定的圆弧")
+            x_displacement = int(paths.pop(0), 16)
+            y_displacement = int(paths.pop(0), 16)
+            bulge = int(paths.pop(0), 16)
+            print(x_displacement, y_displacement, bulge)
             return
         if code == "13" or code == "0d":
-            print("POLY_BULGE_ARC")
-            i += 9
+            while paths.pop(0) != "0" and paths.pop(0) != "0":
+                x_displacement = int(paths.pop(0), 16)
+                y_displacement = int(paths.pop(0), 16)
+                bulge = int(paths.pop(0), 16)
+                print(x_displacement, y_displacement, bulge)
             return
         if code == "14" or code == "0e":
-            print("COND_MODE_2")
-            i, x, y = self.only_verticle_line(i + 1, x, y)
-        else:
-            print("END_OF_SHAPE")
+            print("仅当垂直方向处理")
             return
+        print("未知代码：".format(code))
 
-    def draw(self, path: str):
+    def draw(self, path: str, direction: int = 0):
         """绘制图形"""
+        self.direction = direction
         paths = path.split(",")
         while len(paths) > 0:
             self.handler(paths.pop(0), paths)
         print("绘制完成")
-
-    def saveas(self):
-        """保存绘图"""
-        self.drawing.saveas("test.dxf")
