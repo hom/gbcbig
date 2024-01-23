@@ -15,4 +15,7 @@ class Document:
         drawing: Drawing = ezdxf.new(
             dxfversion="R2018", setup=["linetypes"], units=ezdxf.units.MM
         )
+        drawing.styles.new(
+            name="Albedo", dxfattribs={"font": "gbenor", "bigfont": "gbcbig"}
+        )
         return drawing
