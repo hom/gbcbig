@@ -139,8 +139,8 @@ class Drawer:
             dx, dy = paths.pop(0), paths.pop(0)
             dx = int(dx[1:]) if "(" in dx else int(dx)
             dy = int(dy[:-1]) if ")" in dy else int(dy)
-            # dx *= self.scale
-            # dy *= self.scale
+            dx *= self.scale
+            dy *= self.scale
 
             self.modelspace.add_point(location=(self.pen[0] + dx, self.pen[1] + dy))
             if self.mode:
@@ -184,9 +184,9 @@ class Drawer:
             return
         if code == "14" or code == "0e":
             print("仅当 modes 为 2 时有效")
-            # if not self.direction:
-            #     for _ in range(key_value_length(paths.pop(0))):
-            #         paths.pop(0)
+            if not self.direction:
+                for _ in range(key_value_length(paths.pop(0))):
+                    paths.pop(0)
             return
         print("未知代码：{}".format(code))
 
