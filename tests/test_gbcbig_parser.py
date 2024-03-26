@@ -1,29 +1,25 @@
 import json
 from pathlib import Path
 
-dirname = Path.joinpath(Path(__file__).parent, "gbcbig")
-print(dirname)
-
-shp_path = Path("shps")
-
-error_path = shp_path / "gbcbig_parse_error.txt"
-if error_path.exists():
-    error_path.unlink()
+gbcbig = Path.joinpath(Path(__file__).parent, "gbcbig")
+parse_error_file = Path(gbcbig, "gbcbig_parse_error.txt")
+if parse_error_file.exists():
+    parse_error_file.unlink()
 
 
 def write_error(line, shape):
-    with open(error_path, "a+") as f:
+    with open(parse_error_file, "a+") as f:
         f.write(line + shape + "\n\n")
 
 
 def test_parse_gbcbig():
     """Test parsing of shp file"""
     characters = []
-    with open(shp_path / "gbcbig.shp", "r") as f:
+    with open(gbcbig / "gbcbig.shp", "r") as f:
         lines = f.readlines()[7:]
         shape = ""
         gb2312 = ""
-        unicode = ""
+        unicode = ""  # noqa: F841
         length = ""
         character = ""
         i = 0
@@ -49,7 +45,7 @@ def test_parse_gbcbig():
                 length = chars[1]
                 try:
                     character = bytes.fromhex(gb2312[1:]).decode("gb2312")
-                except Exception as e:
+                except Exception as e:  # noqa: F841
                     write_error(line, shape)
                     i += j
                     continue
@@ -67,5 +63,5 @@ def test_parse_gbcbig():
                 )
                 i += j
 
-    with open(shp_path / "gbcbig.json", "w") as f:
+    with open(gbcbig / "gbcbig.json", "w") as f:
         json.dump(characters, f, ensure_ascii=False, indent=2)

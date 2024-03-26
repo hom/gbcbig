@@ -1,12 +1,10 @@
 import os
-import sys
 from pathlib import Path
 from datetime import datetime
 from gbcbig.drawer import Drawer
 from ezdxf import bbox
 
 dist = Path.joinpath(Path(__file__).parent, "dist")
-print(dist)
 if not dist.exists():
     os.mkdir(dist)
 
